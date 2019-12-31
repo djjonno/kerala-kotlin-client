@@ -25,15 +25,18 @@
 package org.kerala.client
 
 data class KNodeResponse(val id: String, val host: String, val port: Int, val leader: Boolean)
+
 data class KClusterInfoResponse(val nodes: List<KNodeResponse>)
 
-data class KTopicMetaResponse(val id: String, val namespace: String)
+data class KTopicMetaResponse(val id: String, val namespace: String, val index: Long)
+
 data class KGetTopicsResponse(val topics: List<KTopicMetaResponse>)
 
 data class KCommandResponse(val message: String)
 
-data class KProducerResponse(val status: Int)
-data class KConsumerResponse<K, V>(val topic: String, val offset: Long, val status: Int, val kvs: List<KKV<K, V>>)
+data class KProducerResponse(val responseCode: Int)
+
+data class KConsumerResponse<K, V>(val topic: String, val offset: Long, val responseCode: Int, val kvs: List<KKV<K, V>>)
 
 /**
  * Status codes returned by server when sending a Command request.

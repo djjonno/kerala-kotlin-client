@@ -12,6 +12,9 @@ class TopicPlayground : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     @Test
     fun test() {
+        println(keralaClient.getTopics().get())
+
+
 ////        create_topics()
 //        produce()
 //        consume_and_produce()

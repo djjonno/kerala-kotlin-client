@@ -24,9 +24,7 @@
 
 package org.kerala.client.internal
 
-import io.grpc.stub.StreamObserver
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.sendBlocking
+import com.google.common.annotations.VisibleForTesting
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.kerala.client.*
@@ -34,27 +32,12 @@ import org.kerala.client.common.serialization.Consume
 
 internal class Consumer<K, V>(
     client: KeralaClient,
-    private val consume: Consume<K, V>,
+    val consume: Consume<K, V>,
     override val topic: String,
-    private var offset: Long = 1
+    private var offset: Long = 1,
+
+    @VisibleForTesting private val responseStream: ChannelStreamObserver<KeralaConsumerResponse> = ChannelStreamObserver()
 ) : KeralaConsumer<K, V> {
-
-    /* inbound stream to receive server responses */
-    private val responseStream = object : StreamObserver<KeralaConsumerResponse> {
-        val receiverChannel = Channel<KeralaConsumerResponse>()
-
-        override fun onNext(value: KeralaConsumerResponse) {
-            receiverChannel.sendBlocking(value)
-        }
-
-        override fun onError(t: Throwable?) {
-            receiverChannel.close(t)
-        }
-
-        override fun onCompleted() {
-            receiverChannel.close(KeralaClientException("Server closed the stream"))
-        }
-    }
 
     /* outbound stream to dispatch requests to server */
     private val requestStream = client.serviceInvoker.consumeTopic(responseStream)
@@ -63,17 +46,18 @@ internal class Consumer<K, V>(
         requestStream.onNext(createRequest())
 
         val response = withTimeout(timeout) {
-            responseStream.receiverChannel.receive()
+            responseStream.receive()
         }
 
         when (response.responseCode) {
             KClientConsumerACKCodes.OK.id -> offset = response.offset + 1
+            else -> throw KeralaClientException("poll failed with responseCode=${response.responseCode}")
         }
 
         KConsumerResponse(
             topic = response.topic,
             offset = response.offset,
-            status = response.responseCode,
+            responseCode = response.responseCode,
             kvs = deserializeKVs(response.kvsList)
         )
     }

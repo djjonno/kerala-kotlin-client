@@ -22,19 +22,19 @@
  * SOFTWARE.
 */
 
-package org.kerala.client
+package org.kerala.client.common.serialization
 
-import java.io.Closeable
+import org.kerala.client.KeralaClientException
 
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
+class IntDeserializer : Deserializer<Int> {
+  override fun deserialize(data: ByteArray): Int {
+    if (data.size != 4) throw SerializationException("Size of data for IntDeserializer is not 4 bytes")
 
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
-    companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
+    var value = 0
+    data.forEach {
+      value = value shl 8
+      value = value or (it.toInt() and 0xFF)
     }
+    return value
+  }
 }

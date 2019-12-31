@@ -1,5 +1,3 @@
-package org.kerala.client
-
 /*
  * MIT License
  *
@@ -24,7 +22,10 @@ package org.kerala.client
  * SOFTWARE.
 */
 
-interface Serde<T> {
-    val serializer: Serializer<T>
-    val deserializer: Deserializer<T>
+package org.kerala.client.common.serialization
+
+class UnitSerializer : Serializer<Unit> {
+  override fun serialize(data: Unit): ByteArray {
+    return byteArrayOf()
+  }
 }

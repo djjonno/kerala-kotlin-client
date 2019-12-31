@@ -22,19 +22,16 @@
  * SOFTWARE.
 */
 
-package org.kerala.client
+package org.kerala.client.common.serialization
 
-import java.io.Closeable
-
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
-
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
+class SerdePair<K, V> (
+    internal val keySerde: Serde<K>,
+    internal val valueSerde: Serde<V>
+) {
     companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
+        fun <K, V> with(keySerde: Serde<K>, valueSerde: Serde<V>): SerdePair<K, V> = SerdePair(keySerde, valueSerde)
     }
 }
+
+typealias Consume<K, V> = SerdePair<K, V>
+typealias Produce<K, V> = SerdePair<K, V>

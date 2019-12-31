@@ -1,11 +1,3 @@
-package org.kerala.client.internal
-
-import com.google.gson.GsonBuilder
-import io.grpc.ManagedChannel
-import io.grpc.ManagedChannelBuilder
-import org.kerala.client.*
-import java.util.concurrent.TimeUnit
-
 /*
  * MIT License
  *
@@ -30,20 +22,36 @@ import java.util.concurrent.TimeUnit
  * SOFTWARE.
 */
 
+package org.kerala.client.internal
+
+import com.google.gson.GsonBuilder
+import io.grpc.ManagedChannel
+import io.grpc.ManagedChannelBuilder
+import org.kerala.client.*
+import java.util.concurrent.TimeUnit
+
 internal class ServiceBroker(
         private val brokerHost: String,
         private val brokerPort: Int
 ) {
     private val brokerChannel = ManagedChannelBuilder.forAddress(brokerHost, brokerPort).usePlaintext().build()
-    private var clusterInfo: KeralaClusterInfoResponse? = null
+    private var clusterInfo: KClusterInfoResponse? = null
 
+    /**
+     * Bootstraps ServiceBroker with kerala cluster configuration.
+     *
+     * This will allow the ServiceBroker to provide ManagedChannels to appropriate nodes for
+     * read and write operations.
+     *
+     * @throws KeralaClientException if kerala bootstrap node could not be reached.
+     */
     @Throws(KeralaClientException::class)
     @Synchronized internal fun bootstrap() {
         try {
-            val command = RpcCommandRequest.newBuilder().setCommand("cluster").build()
+            val command = KeralaCommandRequest.newBuilder().setCommand("cluster").build()
             /* TODO: add configurable timeout to future#get */
-            val json = ClientServiceGrpc.newFutureStub(brokerChannel).clientCommand(command).get(5, TimeUnit.SECONDS).response
-            clusterInfo = GsonBuilder().create().fromJson<KeralaClusterInfoResponse>(json, KeralaClusterInfoResponse::class.java)
+            val json = KeralaClientServiceGrpc.newFutureStub(brokerChannel).keralaClientCommand(command).get(5, TimeUnit.SECONDS).response
+            clusterInfo = GsonBuilder().create().fromJson<KClusterInfoResponse>(json, KClusterInfoResponse::class.java)
         } catch (e: Exception) {
             throw KeralaClientException("Failed to fetch ClusterInfo from `$brokerHost:$brokerPort`")
         }
@@ -65,8 +73,8 @@ internal class ServiceBroker(
         }
 
         return clusterInfo?.nodes?.find { it.leader }?.toChannel() ?:
-            throw KeralaClientException("Failed to obtain a `read` node from `$brokerHost:$brokerPort`")
+            throw KeralaClientException("Failed to obtain a `write` node from `$brokerHost:$brokerPort`")
     }
 }
 
-fun KeralaNodeResponse.toChannel(): ManagedChannel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build()
+fun KNodeResponse.toChannel(): ManagedChannel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build()

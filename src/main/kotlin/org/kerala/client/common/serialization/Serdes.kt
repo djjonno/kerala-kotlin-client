@@ -1,5 +1,3 @@
-package org.kerala.client
-
 /*
  * MIT License
  *
@@ -24,4 +22,16 @@ package org.kerala.client
  * SOFTWARE.
 */
 
+package org.kerala.client.common.serialization
 
+object Serdes {
+  fun Int(): Serde<Int> = Serde(IntSerializer(), IntDeserializer())
+  fun Long(): Serde<Long> = Serde(LongSerializer(), LongDeserializer())
+  fun Float(): Serde<Float> = Serde(FloatSerializer(), FloatDeserializer())
+  fun Double(): Serde<Double> = Serde(DoubleSerializer(), DoubleDeserializer())
+  fun String(): Serde<String> = Serde(StringSerializer(), StringDeserializer())
+
+  fun ByteArray(): Serde<ByteArray> = Serde(ByteArraySerializer(), ByteArrayDeserializer())
+
+  fun Unit(): Serde<Unit> = Serde(UnitSerializer(), UnitDeserializer())
+}

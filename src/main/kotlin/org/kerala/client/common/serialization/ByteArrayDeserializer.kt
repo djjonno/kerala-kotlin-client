@@ -1,5 +1,3 @@
-package org.kerala.client
-
 /*
  * MIT License
  *
@@ -24,6 +22,10 @@ package org.kerala.client
  * SOFTWARE.
 */
 
-interface Serializer<T> {
-    fun serialize(data: T): ByteArray
+package org.kerala.client.common.serialization
+
+class ByteArrayDeserializer : Deserializer<ByteArray> {
+  override fun deserialize(data: ByteArray): ByteArray {
+    return data
+  }
 }

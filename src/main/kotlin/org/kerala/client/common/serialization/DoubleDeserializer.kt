@@ -22,19 +22,17 @@
  * SOFTWARE.
 */
 
-package org.kerala.client
+package org.kerala.client.common.serialization
 
-import java.io.Closeable
+class DoubleDeserializer : Deserializer<Double> {
+  override fun deserialize(data: ByteArray): Double {
+    if (data.size != 8) throw SerializationException("Size of data for DoubleDeserializer is not 8 bytes")
 
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
-
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
-    companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
+    var value = 0L
+    data.forEach {
+      value = value shl 8
+      value = value or (it.toLong() and 0xFF)
     }
+    return java.lang.Double.longBitsToDouble(value)
+  }
 }

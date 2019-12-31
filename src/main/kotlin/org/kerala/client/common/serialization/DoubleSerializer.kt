@@ -21,20 +21,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
 */
+package org.kerala.client.common.serialization
 
-package org.kerala.client
-
-import java.io.Closeable
-
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
-
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
-    companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
-    }
+class DoubleSerializer : Serializer<Double> {
+  override fun serialize(data: Double): ByteArray {
+    val bits = java.lang.Double.doubleToLongBits(data)
+    return byteArrayOf(
+        (bits ushr 56).toByte(),
+        (bits ushr 48).toByte(),
+        (bits ushr 40).toByte(),
+        (bits ushr 32).toByte(),
+        (bits ushr 24).toByte(),
+        (bits ushr 16).toByte(),
+        (bits ushr 8).toByte(),
+        bits.toByte()
+    )
+  }
 }

@@ -1,8 +1,3 @@
-package org.kerala.client.internal
-
-import io.grpc.stub.StreamObserver
-import org.kerala.client.*
-
 /*
  * MIT License
  *
@@ -27,22 +22,26 @@ import org.kerala.client.*
  * SOFTWARE.
 */
 
+package org.kerala.client.internal
+
+import io.grpc.stub.StreamObserver
+
 internal class ServiceInvoker(private val serviceBroker: ServiceBroker) {
-    private val commandService = ClientServiceGrpc.newFutureStub(serviceBroker.writeChannel())
+    private val commandService = KeralaClientServiceGrpc.newFutureStub(serviceBroker.writeChannel())
 
     fun bootstrap() {
         serviceBroker.bootstrap()
     }
 
-    fun clientCommand(commandRequest: RpcCommandRequest, onSuccess: (RpcCommandResponse) -> Unit = {}) {
-        onSuccess(commandService.clientCommand(commandRequest).get())
+    fun clientCommand(commandRequest: KeralaCommandRequest, onSuccess: (KeralaCommandResponse) -> Unit = {}) {
+        onSuccess(commandService.keralaClientCommand(commandRequest).get())
     }
 
-    fun produceTopic(responseObserver: StreamObserver<RpcProducerResponse>): StreamObserver<RpcProducerRequest> {
-        return ClientServiceGrpc.newStub(serviceBroker.writeChannel()).topicProducer(responseObserver)
+    fun produceTopic(responseObserver: StreamObserver<KeralaProducerResponse>): StreamObserver<KeralaProducerRequest> {
+        return KeralaClientServiceGrpc.newStub(serviceBroker.writeChannel()).keralaTopicProducer(responseObserver)
     }
 
-    fun consumeTopic(responseObserver: StreamObserver<RpcConsumerResponse>): StreamObserver<RpcConsumerRequest> {
-        return ClientServiceGrpc.newStub(serviceBroker.readChannel()).topicConsumer(responseObserver)
+    fun consumeTopic(responseObserver: StreamObserver<KeralaConsumerResponse>): StreamObserver<KeralaConsumerRequest> {
+        return KeralaClientServiceGrpc.newStub(serviceBroker.readChannel()).keralaTopicConsumer(responseObserver)
     }
 }

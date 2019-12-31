@@ -22,19 +22,8 @@
  * SOFTWARE.
 */
 
-package org.kerala.client
+package org.kerala.client.common.serialization
 
-import java.io.Closeable
-
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
-
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
-    companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
-    }
+interface Deserializer<T> {
+    fun deserialize(data: ByteArray): T
 }

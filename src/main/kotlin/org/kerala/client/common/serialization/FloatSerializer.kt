@@ -1,5 +1,3 @@
-package org.kerala.client
-
 /*
  * MIT License
  *
@@ -24,11 +22,16 @@ package org.kerala.client
  * SOFTWARE.
 */
 
-class Consumed<K, V> (
-        internal val keySerde: Serde<K>,
-        internal val valueSerde: Serde<V>
-) {
-    companion object {
-        fun <K, V> with(keySerde: Serde<K>, valueSerde: Serde<V>): Consumed<K, V> = Consumed(keySerde, valueSerde)
-    }
+package org.kerala.client.common.serialization
+
+class FloatSerializer : Serializer<Float> {
+  override fun serialize(data: Float): ByteArray {
+    val bits = java.lang.Float.floatToRawIntBits(data)
+    return byteArrayOf(
+        (bits ushr 24).toByte(),
+        (bits ushr 16).toByte(),
+        (bits ushr 8).toByte(),
+        bits.toByte()
+    )
+  }
 }

@@ -1,5 +1,3 @@
-package org.kerala.client
-
 /*
  * MIT License
  *
@@ -24,11 +22,17 @@ package org.kerala.client
  * SOFTWARE.
 */
 
-data class Produced<K, V>(
-        internal val keySerde: Serde<K>,
-        internal val valueSerde: Serde<V>
-) {
-    companion object {
-        fun <K, V> with(keySerde: Serde<K>, valueSerde: Serde<V>): Produced<K, V> = Produced(keySerde, valueSerde)
+package org.kerala.client.common.serialization
+
+class FloatDeserializer : Deserializer<Float> {
+  override fun deserialize(data: ByteArray): Float {
+    if (data.size != 4) throw SerializationException("Size of data for FloatDeserializer is not 4 bytes")
+
+    var value = 0
+    data.forEach {
+      value = value shl 8
+      value = value or (it.toInt() and 0xFF)
     }
+    return java.lang.Float.intBitsToFloat(value)
+  }
 }

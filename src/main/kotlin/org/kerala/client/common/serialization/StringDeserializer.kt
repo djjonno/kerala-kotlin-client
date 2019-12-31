@@ -22,19 +22,20 @@
  * SOFTWARE.
 */
 
-package org.kerala.client
+package org.kerala.client.common.serialization
 
-import java.io.Closeable
+import org.kerala.client.KeralaClientException
 
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
-
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
-    companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
+class StringDeserializer : Deserializer<String> {
+  override fun deserialize(data: ByteArray): String {
+    return try {
+      String(data, ENCODING)
+    } catch (e: Exception) {
+      throw KeralaClientException("Error when deserializing byte[] to string")
     }
+  }
+
+  private companion object {
+    val ENCODING = Charsets.UTF_8
+  }
 }

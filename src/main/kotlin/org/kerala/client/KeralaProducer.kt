@@ -1,8 +1,3 @@
-package org.kerala.client
-
-import java.io.Closeable
-import java.util.concurrent.Future
-
 /*
  * MIT License
  *
@@ -27,9 +22,19 @@ import java.util.concurrent.Future
  * SOFTWARE.
 */
 
+package org.kerala.client
+
+import java.io.Closeable
+import java.util.concurrent.Future
+
 interface KeralaProducer<K, V> : Closeable {
-    @Throws(KeralaClientException::class) fun send(topic: String, record: KeralaKV<String, String>, block: (KeralaProducerResponse) -> Unit = {})
-    @Throws(KeralaClientException::class) fun send(topic: String, records: List<KeralaKV<String, String>>, block: (KeralaProducerResponse) -> Unit = {})
-    @Throws(KeralaClientException::class) fun send(topic: String, record: KeralaKV<String, String>): Future<KeralaProducerResponse>
-    @Throws(KeralaClientException::class) fun send(topic: String, records: List<KeralaKV<String, String>>): Future<KeralaProducerResponse>
+    operator fun invoke(block: KeralaProducer<K, V>.() -> Unit) = block()
+
+    @Throws(KeralaClientException::class) fun send(topic: String, kv: KKV<K, V>, block: (KProducerResponse) -> Unit = {})
+
+    @Throws(KeralaClientException::class) fun send(topic: String, kvs: List<KKV<K, V>>, block: (KProducerResponse) -> Unit = {})
+
+    @Throws(KeralaClientException::class) fun send(topic: String, kv: KKV<K, V>): Future<KProducerResponse>
+
+    @Throws(KeralaClientException::class) fun send(topic: String, kvs: List<KKV<K, V>>): Future<KProducerResponse>
 }

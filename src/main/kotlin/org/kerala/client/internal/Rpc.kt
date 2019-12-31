@@ -1,8 +1,3 @@
-package org.kerala.client.internal
-
-import org.kerala.client.KeralaConsumerResponse
-import org.kerala.client.KeralaKV
-
 /*
  * MIT License
  *
@@ -27,14 +22,9 @@ import org.kerala.client.KeralaKV
  * SOFTWARE.
 */
 
-fun argPair(param: String, arg: String): RpcArgPair = RpcArgPair.newBuilder().apply {
+package org.kerala.client.internal
+
+fun argPair(param: String, arg: String): KeralaArgPair = KeralaArgPair.newBuilder().apply {
     setParam(param)
     setArg(arg)
 }.build()
-
-fun RpcConsumerResponse.toConsumerResponse() = KeralaConsumerResponse(
-        topic = topic,
-        offset = offset,
-        kvs = kvsList.map { KeralaKV<String, String>(it.key, it.value, it.timestamp) },
-        status = status
-)

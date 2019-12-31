@@ -1,16 +1,3 @@
-package org.kerala.client.internal
-
-import io.grpc.StatusRuntimeException
-import io.grpc.stub.StreamObserver
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.sendBlocking
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import org.kerala.client.*
-import java.io.Closeable
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Future
-
 /*
  * MIT License
  *
@@ -35,18 +22,30 @@ import java.util.concurrent.Future
  * SOFTWARE.
 */
 
+package org.kerala.client.internal
+
+import com.google.protobuf.ByteString
+import io.grpc.StatusRuntimeException
+import io.grpc.stub.StreamObserver
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.sendBlocking
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.kerala.client.*
+import org.kerala.client.common.serialization.Produce
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Future
+
 internal class Producer<K, V> internal constructor(
         client: KeralaClient,
-        private val produced: Produced<K, V>
-) : Closeable, KeralaProducer<K, V> {
-
-    operator fun invoke(block: Producer<K, V>.() -> Unit) = block()
+        private val produced: Produce<K, V>
+) : KeralaProducer<K, V> {
 
     /* inbound stream to receive server responses */
-    private val responseStream = object : StreamObserver<RpcProducerResponse> {
-        val receiverChannel = Channel<RpcProducerResponse>()
+    private val responseStream = object : StreamObserver<KeralaProducerResponse> {
+        val receiverChannel = Channel<KeralaProducerResponse>()
 
-        override fun onNext(value: RpcProducerResponse) {
+        override fun onNext(value: KeralaProducerResponse) {
             receiverChannel.sendBlocking(value)
         }
 
@@ -62,11 +61,12 @@ internal class Producer<K, V> internal constructor(
     /* outbound stream to dispatch requests to server */
     private val requestStream = client.serviceInvoker.produceTopic(responseStream)
 
-    override fun send(topic: String, record: KeralaKV<String, String>, block: (KeralaProducerResponse) -> Unit) = send(topic, listOf(record), block)
-    override fun send(topic: String, record: KeralaKV<String, String>): Future<KeralaProducerResponse> = send(topic, record)
+    override fun send(topic: String, kv: KKV<K, V>, block: (KProducerResponse) -> Unit) = send(topic, listOf(kv), block)
 
-    override fun send(topic: String, records: List<KeralaKV<String, String>>, block: (KeralaProducerResponse) -> Unit) {
-        requestStream.onNext(createRequest(topic, records))
+    override fun send(topic: String, kv: KKV<K, V>): Future<KProducerResponse> = send(topic, listOf(kv))
+
+    override fun send(topic: String, kvs: List<KKV<K, V>>, block: (KProducerResponse) -> Unit) {
+        requestStream.onNext(createRequest(topic, kvs))
 
         try {
             val response = runBlocking {
@@ -75,19 +75,18 @@ internal class Producer<K, V> internal constructor(
                 }
             }
 
-            when (response.status) {
-                ClientProducerACKCodes.OK.id -> block(KeralaProducerResponse(response.status))
-                else -> throw KeralaClientException("Server error `${ClientProducerACKCodes.fromId(response.status)?.name}`")
+            when (response.responseCode) {
+                KClientProducerACKCodes.OK.id -> block(KProducerResponse(response.responseCode))
+                else -> throw KeralaClientException("Server error `${KClientProducerACKCodes.fromId(response.responseCode)?.name}`")
             }
         } catch (e: StatusRuntimeException) {
             throw KeralaClientException("Network error")
         }
-
     }
 
-    override fun send(topic: String, records: List<KeralaKV<String, String>>): Future<KeralaProducerResponse> {
-        return CompletableFuture<KeralaProducerResponse>().apply {
-            send(topic, records) {
+    override fun send(topic: String, kvs: List<KKV<K, V>>): Future<KProducerResponse> {
+        return CompletableFuture<KProducerResponse>().apply {
+            send(topic, kvs) {
                 complete(it)
             }
         }
@@ -97,10 +96,14 @@ internal class Producer<K, V> internal constructor(
         requestStream.onCompleted()
     }
 
-    private fun createRequest(topic: String, records: List<KeralaKV<String, String>>) = RpcProducerRequest.newBuilder()
-        .setTopic(topic)
-        .addAllKvs(records.map {
-            RpcKV.newBuilder().setKey(it.key).setValue(it.value).setTimestamp(it.timestamp).build()
-        })
-        .build()
+    private fun createRequest(topic: String, kvs: List<KKV<K, V>>): KeralaProducerRequest {
+        return KeralaProducerRequest.newBuilder()
+            .setTopic(topic)
+            .addAllKvs(kvs.map {
+                val key = ByteString.copyFrom(produced.keySerde.serializer.serialize(it.key))
+                val value = ByteString.copyFrom(produced.valueSerde.serializer.serialize(it.value))
+                KeralaKV.newBuilder().setKey(key).setValue(value).setTimestamp(it.timestamp).build()
+            })
+            .build()
+    }
 }

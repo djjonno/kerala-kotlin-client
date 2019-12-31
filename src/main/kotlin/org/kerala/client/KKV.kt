@@ -24,17 +24,6 @@
 
 package org.kerala.client
 
-import java.io.Closeable
+data class KKV<K, V>(val key: K, val value: V, val timestamp: Long = System.currentTimeMillis())
 
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
-
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
-    companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
-    }
-}
+infix fun <K, V> K.kv(value: V): KKV<K, V> = KKV(key = this, value = value)

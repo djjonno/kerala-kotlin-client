@@ -1,7 +1,3 @@
-package org.kerala.client
-
-import java.lang.Exception
-
 /*
  * MIT License
  *
@@ -25,5 +21,7 @@ import java.lang.Exception
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
 */
+
+package org.kerala.client
 
 class KeralaClientException(message: String? = null, throwable: Throwable? = null) : Exception(message, throwable)

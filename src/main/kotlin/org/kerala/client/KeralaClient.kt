@@ -1,10 +1,3 @@
-package org.kerala.client
-
-import com.google.gson.GsonBuilder
-import org.kerala.client.internal.*
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Future
-
 /*
  * MIT License
  *
@@ -29,18 +22,23 @@ import java.util.concurrent.Future
  * SOFTWARE.
 */
 
+package org.kerala.client
+
+import com.google.gson.GsonBuilder
+import org.kerala.client.common.serialization.Consume
+import org.kerala.client.common.serialization.Produce
+import org.kerala.client.internal.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Future
+
 typealias Block<T> = (T) -> Unit
 
 class KeralaClient private constructor(internal val serviceInvoker: ServiceInvoker) {
 
     /**
-     * Establish a connection with the Kerala Server.
+     * Establish a connection with a Kerala node.
      *
-     * This is not a prerequisite to actually communicating and establishing a
-     * connection with the kerala server.  It merely exists as a method to
-     * allow a client to fail fast and eagerly bootstrap itself.
-     *
-     * @throws KeralaClientException if the bootstrap server cannot be contacted.
+     * @throws KeralaClientException if the kerala node cannot be contacted.
      */
     @Throws(KeralaClientException::class)
     fun connect() {
@@ -48,13 +46,13 @@ class KeralaClient private constructor(internal val serviceInvoker: ServiceInvok
     }
 
     @Throws(KeralaClientException::class)
-    fun getTopics(onSuccess: Block<KeralaGetTopicsResponse>) {
+    fun getTopics(onSuccess: Block<KGetTopicsResponse>) {
         wrapCommand(GET_TOPICS_COMMAND_NAME, onSuccess = onSuccess)
     }
 
     @Throws(KeralaClientException::class)
-    fun getTopics(): Future<KeralaGetTopicsResponse> {
-        return CompletableFuture<KeralaGetTopicsResponse>().apply {
+    fun getTopics(): Future<KGetTopicsResponse> {
+        return CompletableFuture<KGetTopicsResponse>().apply {
             getTopics {
                 complete(it)
             }
@@ -62,13 +60,13 @@ class KeralaClient private constructor(internal val serviceInvoker: ServiceInvok
     }
 
     @Throws(KeralaClientException::class)
-    fun createTopic(namespace: String, onSuccess: Block<KeralaCommandResponse> = {}) {
+    fun createTopic(namespace: String, onSuccess: Block<KCommandResponse> = {}) {
         wrapCommand(CREATE_TOPIC_COMMAND_NAME, listOf(argPair("namespace", namespace)), onSuccess = onSuccess)
     }
 
     @Throws(KeralaClientException::class)
-    fun createTopic(namespace: String): Future<KeralaCommandResponse> {
-        return CompletableFuture<KeralaCommandResponse>().apply {
+    fun createTopic(namespace: String): Future<KCommandResponse> {
+        return CompletableFuture<KCommandResponse>().apply {
             createTopic(namespace) {
                 complete(it)
             }
@@ -76,36 +74,40 @@ class KeralaClient private constructor(internal val serviceInvoker: ServiceInvok
     }
 
     @Throws(KeralaClientException::class)
-    fun deleteTopic(namespace: String, onSuccess: Block<KeralaCommandResponse> = {}) {
+    fun deleteTopic(namespace: String, onSuccess: Block<KCommandResponse> = {}) {
         wrapCommand(DELETE_TOPIC_COMMAND_NAME, listOf(argPair("namespace", namespace)), onSuccess = onSuccess)
     }
 
     @Throws(KeralaClientException::class)
-    fun deleteTopic(namespace: String): Future<KeralaCommandResponse> {
-        return CompletableFuture<KeralaCommandResponse>().apply {
+    fun deleteTopic(namespace: String): Future<KCommandResponse> {
+        return CompletableFuture<KCommandResponse>().apply {
             deleteTopic(namespace) {
                 complete(it)
             }
         }
     }
 
-    fun <K, V> producer(produced: Produced<K, V>, block: KeralaProducer<K, V>.() -> Unit = {}): KeralaProducer<K, V> =
-        Producer(this, produced).apply {
+    fun <K, V> producer(produce: Produce<K, V>): KeralaProducer<K, V> = Producer(this, produce)
+
+    fun <K, V> producer(produce: Produce<K, V>, block: KeralaProducer<K, V>.() -> Unit): KeralaProducer<K, V> =
+        Producer(this, produce).apply {
             block()
             close()
         }
 
-    fun <K, V> consumer(topic: String, consumed: Consumed<K, V>, from: Long = 1, block: KeralaConsumer<K, V>.() -> Unit = {}): KeralaConsumer<K, V> =
-        Consumer(this, consumed, topic, from).apply {
+    fun <K, V> consumer(topic: String, consume: Consume<K, V>, from: Long = KeralaConsumer.FROM_START): KeralaConsumer<K, V> = Consumer(this, consume, topic, from)
+
+    fun <K, V> consumer(topic: String, consume: Consume<K, V>, from: Long = KeralaConsumer.FROM_START, block: KeralaConsumer<K, V>.() -> Unit = {}): KeralaConsumer<K, V> =
+        Consumer(this, consume, topic, from).apply {
             block()
             close()
         }
 
-    private inline fun <reified T> wrapCommand(commandName: String, args: List<RpcArgPair> = emptyList(), crossinline onSuccess: Block<T>) {
-        serviceInvoker.clientCommand(RpcCommandRequest.newBuilder().setCommand(commandName).addAllArgs(args).build()) { response ->
-            when (response.status) {
-                ClientCommandACKCodes.OK.id -> onSuccess(GsonBuilder().create().fromJson(response.response, T::class.java))
-                ClientCommandACKCodes.ERROR.id -> throw KeralaClientException(response.response)
+    private inline fun <reified T> wrapCommand(commandName: String, args: List<KeralaArgPair> = emptyList(), crossinline onSuccess: Block<T>) {
+        serviceInvoker.clientCommand(KeralaCommandRequest.newBuilder().setCommand(commandName).addAllArgs(args).build()) { response ->
+            when (response.responseCode) {
+                KClientCommandACKCodes.OK.id -> onSuccess(GsonBuilder().create().fromJson(response.response, T::class.java))
+                KClientCommandACKCodes.ERROR.id -> throw KeralaClientException(response.response)
             }
         }
     }

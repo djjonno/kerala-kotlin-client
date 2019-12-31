@@ -22,19 +22,17 @@
  * SOFTWARE.
 */
 
-package org.kerala.client
+package org.kerala.client.common.serialization
 
-import java.io.Closeable
+class ShortDeserializer : Deserializer<Short> {
+  override fun deserialize(data: ByteArray): Short {
+    if (data.size != 2) throw SerializationException("Size of data for ShortDeserializer is not 2 bytes")
 
-interface KeralaConsumer<K, V> : Closeable {
-    val topic: String
-
-    operator fun invoke(block: KeralaConsumer<K, V>.() -> Unit) = block()
-
-    fun poll(timeout: Long): KConsumerResponse<K, V>
-
-    companion object {
-        const val FROM_START = 0L
-        const val FROM_END = -1L
+    var value = 0
+    data.forEach {
+      value = value shl 8
+      value = value or (it.toInt() and 0xFF)
     }
+    return value.toShort()
+  }
 }

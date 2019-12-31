@@ -1,13 +1,3 @@
-package org.kerala.client.internal
-
-import io.grpc.stub.StreamObserver
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.sendBlocking
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import org.kerala.client.*
-import java.io.Closeable
-
 /*
  * MIT License
  *
@@ -32,17 +22,28 @@ import java.io.Closeable
  * SOFTWARE.
 */
 
+package org.kerala.client.internal
+
+import io.grpc.stub.StreamObserver
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.sendBlocking
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.kerala.client.*
+import org.kerala.client.common.serialization.Consume
+
 internal class Consumer<K, V>(
     client: KeralaClient,
-    private val consumed: Consumed<K, V>,
-    val topic: String,
+    private val consume: Consume<K, V>,
+    override val topic: String,
     private var offset: Long = 1
-) : Closeable, KeralaConsumer<K, V> {
+) : KeralaConsumer<K, V> {
 
-    private val responseStream = object : StreamObserver<RpcConsumerResponse> {
-        val receiverChannel = Channel<RpcConsumerResponse>()
+    /* inbound stream to receive server responses */
+    private val responseStream = object : StreamObserver<KeralaConsumerResponse> {
+        val receiverChannel = Channel<KeralaConsumerResponse>()
 
-        override fun onNext(value: RpcConsumerResponse) {
+        override fun onNext(value: KeralaConsumerResponse) {
             receiverChannel.sendBlocking(value)
         }
 
@@ -55,30 +56,40 @@ internal class Consumer<K, V>(
         }
     }
 
+    /* outbound stream to dispatch requests to server */
     private val requestStream = client.serviceInvoker.consumeTopic(responseStream)
 
-    operator fun invoke(block: Consumer<K, V>.() -> Unit) = block()
-
-    override fun poll(timeout: Long): KeralaConsumerResponse<String, String> = runBlocking {
+    override fun poll(timeout: Long): KConsumerResponse<K, V> = runBlocking {
         requestStream.onNext(createRequest())
 
         val response = withTimeout(timeout) {
             responseStream.receiverChannel.receive()
         }
 
-        when (response.status) {
-            ClientConsumerACKCodes.OK.id -> offset = response.offset + 1
+        when (response.responseCode) {
+            KClientConsumerACKCodes.OK.id -> offset = response.offset + 1
         }
 
-        response.toConsumerResponse()
+        KConsumerResponse(
+            topic = response.topic,
+            offset = response.offset,
+            status = response.responseCode,
+            kvs = deserializeKVs(response.kvsList)
+        )
+    }
+
+    private fun deserializeKVs(kvs: List<KeralaKV>): List<KKV<K, V>> = kvs.map {
+        val key = consume.keySerde.deserializer.deserialize(it.key.toByteArray())
+        val value = consume.valueSerde.deserializer.deserialize(it.value.toByteArray())
+        KKV(key, value, it.timestamp)
     }
 
     override fun close() {
         responseStream.onCompleted()
     }
 
-    private fun createRequest(): RpcConsumerRequest {
-        return RpcConsumerRequest.newBuilder()
+    private fun createRequest(): KeralaConsumerRequest {
+        return KeralaConsumerRequest.newBuilder()
             .setTopic(topic)
             .setOffset(offset)
             .build()

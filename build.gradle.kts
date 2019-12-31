@@ -1,4 +1,5 @@
 import com.google.protobuf.gradle.*
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val grpcVersion = "1.18.0"
 val protobufVersion = "3.7.1"
@@ -14,7 +15,7 @@ buildscript {
 }
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.3.41"
+    id("org.jetbrains.kotlin.jvm") version "1.3.61"
     id("org.jetbrains.dokka") version "0.9.17"
     id("com.google.protobuf") version "0.8.8"
 
@@ -42,9 +43,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.2")
     implementation("com.google.code.gson:gson:2.8.6")
+
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.5.2")
 }
 
 sourceSets {
@@ -54,6 +57,10 @@ sourceSets {
             srcDirs("build/generated/source/proto/main/java")
         }
     }
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions.jvmTarget = "1.8"
 }
 
 tasks.dokka {

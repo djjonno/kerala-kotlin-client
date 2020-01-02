@@ -33,5 +33,5 @@ object Serdes {
 
   fun ByteArray(): Serde<ByteArray> = Serde(ByteArraySerializer(), ByteArrayDeserializer())
 
-  fun Unit(): Serde<Unit> = Serde(UnitSerializer(), UnitDeserializer())
+  val Unit: Serde<Unit> = Serde(UnitSerializer(), UnitDeserializer())
 }

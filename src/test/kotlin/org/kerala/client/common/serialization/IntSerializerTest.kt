@@ -3,15 +3,25 @@ package org.kerala.client.common.serialization
 import org.junit.Test
 import kotlin.test.assertEquals
 
-class IntSerializerTest {
+internal class IntSerializerTest {
+
+  private val serializer = IntSerializer()
+  private val deserializer = IntDeserializer()
+
   @Test
-  fun `should serialize to byte array`() {
-    val expected = 101
-    val serializer = IntSerializer()
-    val bytes = serializer.serialize(expected)
+  fun `should serialize int`() {
+    // Given
+    val original = Int.MAX_VALUE
 
-    val actual = IntDeserializer().deserialize(bytes)
+    // When
+    val serialized = serializer.serialize(original)
 
-    assertEquals(expected, actual)
+    // Then
+    assertEquals(BYTE_LENGTH, serialized.size)
+    assertEquals(original, deserializer.deserialize(serialized))
+  }
+
+  companion object {
+    const val BYTE_LENGTH = 4
   }
 }

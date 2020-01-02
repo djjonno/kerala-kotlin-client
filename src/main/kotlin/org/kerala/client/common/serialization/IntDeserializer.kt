@@ -24,8 +24,6 @@
 
 package org.kerala.client.common.serialization
 
-import org.kerala.client.KeralaClientException
-
 class IntDeserializer : Deserializer<Int> {
   override fun deserialize(data: ByteArray): Int {
     if (data.size != 4) throw SerializationException("Size of data for IntDeserializer is not 4 bytes")

@@ -95,10 +95,10 @@ class KeralaClient private constructor(internal val serviceInvoker: ServiceInvok
             close()
         }
 
-    fun <K, V> consumer(topic: String, consume: Consume<K, V>, from: Long = KeralaConsumer.FROM_START): KeralaConsumer<K, V> = Consumer(this, consume, topic, from)
+    fun <K, V> consumer(topic: String, consume: Consume<K, V>, offset: Long = KeralaConsumer.FROM_START): KeralaConsumer<K, V> = Consumer(this, consume, topic, offset)
 
-    fun <K, V> consumer(topic: String, consume: Consume<K, V>, from: Long = KeralaConsumer.FROM_START, block: KeralaConsumer<K, V>.() -> Unit = {}): KeralaConsumer<K, V> =
-        Consumer(this, consume, topic, from).apply {
+    fun <K, V> consumer(topic: String, consume: Consume<K, V>, offset: Long = KeralaConsumer.FROM_START, block: KeralaConsumer<K, V>.() -> Unit = {}): KeralaConsumer<K, V> =
+        Consumer(this, consume, topic, offset).apply {
             block()
             close()
         }

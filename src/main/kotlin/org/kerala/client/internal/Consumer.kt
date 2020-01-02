@@ -32,7 +32,7 @@ import org.kerala.client.common.serialization.Consume
 
 internal class Consumer<K, V>(
     client: KeralaClient,
-    val consume: Consume<K, V>,
+    private val consume: Consume<K, V>,
     override val topic: String,
     private var offset: Long = 1,
 
